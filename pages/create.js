@@ -3,6 +3,7 @@ import Page from "../components/Page.js";
 import Form from "../components/Form.js";
 
 import { useContext, useEffect, useState } from "react";
+import { safeParseVibe } from "../utils/storage.js";
 
 export default function Create() {
 
@@ -24,7 +25,7 @@ export default function Create() {
 
     // Change vibe preview on selection
     const handleChange = (selectedVibe) => {
-        const vibe = JSON.parse(selectedVibe);
+        const vibe = safeParseVibe(selectedVibe);
         setEmoji(vibe.emoji);
         setStops({
             start: vibe.group[0],

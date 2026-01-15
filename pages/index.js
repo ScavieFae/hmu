@@ -10,6 +10,7 @@ import styles from "../styles/Home.module.css";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Typed from "typed.js";
+import { safeParseVibe } from "../utils/storage.js";
 
 export default function Home() {
     const { formValues, setFormValues, linkValues, setLinkValues } = useContext(StorageContext);
@@ -125,7 +126,7 @@ export default function Home() {
             </header>
             {isStandalone ?
                 formValues.name && formValues.vibe ?
-                    <Contacts name={formValues.name} vibe={JSON.parse(formValues.vibe)} />
+                    <Contacts name={formValues.name} vibe={safeParseVibe(formValues.vibe)} />
                     : <Button className="mt-16" onClick={create}>+ New contact</Button>
                 : <div className="mt-16 flex flex-col items-center">
                     <Button className="mb-4" onClick={pressInstallButton}>Install app</Button>

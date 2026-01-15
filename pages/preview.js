@@ -9,6 +9,7 @@ import styles from "../styles/Preview.module.css";
 import { useRouter } from 'next/router';
 import { useContext, useEffect, useState } from "react";
 import QRCode from "qrcode";
+import { safeParseVibe } from "../utils/storage.js";
 
 export default function Preview() {
     const router = useRouter();
@@ -131,6 +132,15 @@ export default function Preview() {
                         displayName: displayName,
                         label: label,
                     }));
+                }).catch((error) => {
+                    console.error('[QRCode] Failed to generate link QR:', error.message);
+                    // Set data without QR code to prevent blank screen
+                    setData((prevData) => ({
+                        ...prevData,
+                        src: '',
+                        displayName: displayName,
+                        label: label,
+                    }));
                 });
         }
     }
@@ -161,7 +171,7 @@ export default function Preview() {
 
         if (formValues) {
             const name = formValues.name;
-            const vibe = JSON.parse(formValues.vibe);
+            const vibe = safeParseVibe(formValues.vibe);
             QRCode.toDataURL(vCardValues(formValues),
                 {
                     width: 168,
@@ -176,6 +186,15 @@ export default function Preview() {
                     setContact({
                         name: name,
                         src: url
+                    });
+                }).catch((error) => {
+                    console.error('[QRCode] Failed to generate contact QR:', error.message);
+                    // Set data without QR code to prevent blank screen
+                    setData({
+                        src: '',
+                        displayName: name,
+                        label: "Contact",
+                        vibe: vibe,
                     });
                 });
         }
