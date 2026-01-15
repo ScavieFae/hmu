@@ -1,13 +1,16 @@
 import { StorageContext } from "./_app.js";
 import Page from "../components/Page.js";
 import Form from "../components/Form.js";
-
-import { useContext, useEffect, useState } from "react";
 import { safeParseVibe } from "../utils/storage.js";
 
-export default function Create() {
+import { useRouter } from "next/router";
+import { useContext, useEffect, useState } from "react";
 
-    const { formValues, setFormValues, linkValues, setLinkValues } = useContext(StorageContext);
+export default function Create() {
+    const router = useRouter();
+    const { id: contactId } = router.query;
+
+    const { getContact } = useContext(StorageContext);
 
     const [emoji, setEmoji] = useState(null);
 
@@ -17,6 +20,9 @@ export default function Create() {
     });
 
     const [angle, setAngle] = useState(180);
+
+    // Current contact data for editing
+    const [currentFormValues, setCurrentFormValues] = useState(null);
 
     // Increment gradient angle
     const updateGradientAngle = () => {
@@ -33,13 +39,28 @@ export default function Create() {
         });
     }
 
+    // Load contact data when contactId is available
     useEffect(() => {
-        if (formValues) {
-            handleChange(formValues.vibe);
+        if (!contactId || contactId === 'new') {
+            // New contact - no data to load
+            setCurrentFormValues(null);
+            return;
         }
+
+        const contact = getContact(contactId);
+        if (contact && contact.formValues) {
+            setCurrentFormValues(contact.formValues);
+            // Update preview if vibe exists
+            if (contact.formValues.vibe) {
+                handleChange(contact.formValues.vibe);
+            }
+        }
+    }, [contactId, getContact]);
+
+    useEffect(() => {
         const interval = setInterval(updateGradientAngle, 15);
         return () => clearInterval(interval);
-    }, [formValues])
+    }, []);
 
     return (
         <Page className={stops.start != "" ? "justify-center z-0" : "justify-center bg-slate-100"}>
@@ -55,10 +76,14 @@ export default function Create() {
                         alt={emoji || "👤"} />
                 </div>
                 <h1 className="text-center text-4xl leading-tight text-slate-600">
-                    Enter your contact&nbsp;info
+                    {contactId === 'new' ? 'Create a new contact' : 'Enter your contact\u00A0info'}
                 </h1>
             </header>
-            <Form handleChange={handleChange} />
+            <Form 
+                contactId={contactId} 
+                initialFormValues={currentFormValues}
+                handleChange={handleChange} 
+            />
         </Page>
     );
 };

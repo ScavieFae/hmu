@@ -5,16 +5,17 @@ import EditPane from "../components/EditPane.js";
 import SocialLink from "../components/SocialLink.js";
 import TextButton from "../components/TextButton.js";
 import styles from "../styles/Preview.module.css";
+import { safeParseVibe } from "../utils/storage.js";
 
 import { useRouter } from 'next/router';
 import { useContext, useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { safeParseVibe } from "../utils/storage.js";
 
 export default function Preview() {
     const router = useRouter();
+    const { id: contactId } = router.query;
 
-    const { formValues, setFormValues, linkValues, setLinkValues } = useContext(StorageContext);
+    const { contacts, getContact } = useContext(StorageContext);
 
     const [data, setData] = useState({
         src: "",
@@ -70,6 +71,9 @@ export default function Preview() {
 
     const [editing, setEditing] = useState(false);
 
+    // Current contact data
+    const [currentContact, setCurrentContact] = useState(null);
+
     const vCardValues = (formValues) => {
         let vCard =
             "BEGIN:VCARD\nVERSION:4.0" +
@@ -103,11 +107,11 @@ export default function Preview() {
     }
 
     const editContact = () => {
-        router.push("/create?editing=true");
+        router.push(`/create?id=${contactId}&editing=true`);
     }
 
     const editLinks = () => {
-        router.push("/links");
+        router.push(`/links?id=${contactId}`);
     }
 
     const toggleActiveLink = (e) => {
@@ -133,11 +137,10 @@ export default function Preview() {
                         label: label,
                     }));
                 }).catch((error) => {
-                    console.error('[QRCode] Failed to generate link QR:', error.message);
-                    // Set data without QR code to prevent blank screen
+                    console.error('[QR] Failed to generate QR code:', error);
                     setData((prevData) => ({
                         ...prevData,
-                        src: '',
+                        src: "",
                         displayName: displayName,
                         label: label,
                     }));
@@ -159,45 +162,75 @@ export default function Preview() {
         }
     }
 
+    // Load contact data when contacts or contactId changes
     useEffect(() => {
-        if (formValues !== null) {
+        if (!contacts || contacts.length === 0) {
             setLoading(false);
+            return;
         }
 
-        if (formValues === "") {
+        // Find the contact - use contactId from query, or first contact as default
+        let contactData = null;
+        if (contactId) {
+            contactData = getContact(contactId);
+        }
+        // Fallback to first contact if no ID specified or not found
+        if (!contactData && contacts.length > 0) {
+            contactData = contacts[0];
+            // Update URL to reflect actual contact being shown
+            if (contactData && !contactId) {
+                router.replace(`/preview?id=${contactData.id}`, undefined, { shallow: true });
+            }
+        }
+
+        if (!contactData) {
             home();
             return;
         }
 
-        if (formValues) {
-            const name = formValues.name;
-            const vibe = safeParseVibe(formValues.vibe);
-            QRCode.toDataURL(vCardValues(formValues),
-                {
-                    width: 168,
-                    errorCorrectionLevel: 'L',
-                }).then((url) => {
-                    setData({
-                        src: url,
-                        displayName: name,
-                        label: "Contact",
-                        vibe: vibe,
-                    });
-                    setContact({
-                        name: name,
-                        src: url
-                    });
-                }).catch((error) => {
-                    console.error('[QRCode] Failed to generate contact QR:', error.message);
-                    // Set data without QR code to prevent blank screen
-                    setData({
-                        src: '',
-                        displayName: name,
-                        label: "Contact",
-                        vibe: vibe,
-                    });
-                });
+        setCurrentContact(contactData);
+        const formValues = contactData.formValues;
+        const linkValues = contactData.linkValues;
+
+        // Check if contact has required data
+        if (!formValues || formValues === "" || !formValues.name) {
+            home();
+            return;
         }
+
+        setLoading(false);
+
+        const name = formValues.name;
+        const vibe = safeParseVibe(formValues.vibe);
+        
+        QRCode.toDataURL(vCardValues(formValues),
+            {
+                width: 168,
+                errorCorrectionLevel: 'L',
+            }).then((url) => {
+                setData({
+                    src: url,
+                    displayName: name,
+                    label: "Contact",
+                    vibe: vibe,
+                });
+                setContact({
+                    name: name,
+                    src: url
+                });
+            }).catch((error) => {
+                console.error('[QR] Failed to generate contact QR code:', error);
+                setData({
+                    src: "",
+                    displayName: name,
+                    label: "Contact",
+                    vibe: vibe,
+                });
+                setContact({
+                    name: name,
+                    src: ""
+                });
+            });
 
         if (linkValues) {
             setLinks(prevLinks => {
@@ -208,14 +241,17 @@ export default function Preview() {
                         updatedLinks[key].url = linkValues[key];
                     }
                     else if (linkValues[key]) {
-                        updatedLinks[key].displayName = links[key].displayNamePrepend + linkValues[key];
-                        updatedLinks[key].url = links[key].urlPrepend + linkValues[key];
+                        updatedLinks[key].displayName = prevLinks[key].displayNamePrepend + linkValues[key];
+                        updatedLinks[key].url = prevLinks[key].urlPrepend + linkValues[key];
+                    } else {
+                        updatedLinks[key].displayName = "";
+                        updatedLinks[key].url = "";
                     }
                 }
                 return updatedLinks;
             });
         }
-    }, [formValues, linkValues]);
+    }, [contacts, contactId, getContact, router]);
 
     const filteredLinks =
         <div className="flex flex-wrap justify-center">
@@ -261,7 +297,7 @@ export default function Preview() {
                 active:bg-black/[.15] !border-none"
                         onClick={editLinks}>Add links</TextButton> : filteredLinks}
             </div>
-            {editing ? <EditPane editContact={editContact} editLinks={editLinks} /> : null}
+            {editing ? <EditPane contactId={contactId} editContact={editContact} editLinks={editLinks} /> : null}
             <p className="absolute bottom-6 text-lg tracking-wide text-slate-600/50">hmu.world</p>
         </Page>
     );

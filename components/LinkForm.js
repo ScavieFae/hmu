@@ -6,10 +6,10 @@ import TextButton from './TextButton.js';
 import { useRouter } from 'next/router';
 import { useContext, useEffect, useState } from 'react';
 
-export default function LinkForm() {
+export default function LinkForm({ contactId, initialLinkValues }) {
     const router = useRouter();
 
-    const { formValues, setFormValues, linkValues, setLinkValues } = useContext(StorageContext);
+    const { setContact, getContact } = useContext(StorageContext);
 
     const [formfield, setFormfield] = useState({
         instagram: "",
@@ -28,19 +28,26 @@ export default function LinkForm() {
     }
 
     // get usernames from links
+    // Iterative approach to prevent stack overflow on malformed URLs
     const processDisplayName = (inputString) => {
-        // Using match method
-        const matchResult = inputString.match(/\/([^/?]+)(?:\?.*)?$/);
-        if (matchResult) {
-            const textAfterLastSlash = matchResult[1];
-            return (processDisplayName(textAfterLastSlash));
-        } else {
-            // Remove query strings
-            const textBeforeQuery = inputString.split('?')[0];
-            // No match found, output the input string without "@" if present
-            const textAfterAt = textBeforeQuery.replace(/^@/, '');
-            return textAfterAt;
+        let current = inputString;
+        const maxIterations = 10; // Safety limit to prevent infinite loops
+
+        // Iteratively extract text after last slash until no more matches
+        for (let i = 0; i < maxIterations; i++) {
+            const matchResult = current.match(/\/([^/?]+)(?:\?.*)?$/);
+            if (matchResult) {
+                current = matchResult[1];
+            } else {
+                break;
+            }
         }
+
+        // Remove query strings
+        const textBeforeQuery = current.split('?')[0];
+        // Remove "@" if present
+        const textAfterAt = textBeforeQuery.replace(/^@/, '');
+        return textAfterAt;
     }
 
     const handleSubmit = (event) => {
@@ -57,7 +64,8 @@ export default function LinkForm() {
             })
         );
 
-        setLinkValues(processedLinks);
+        // Save links to specific contact using new API
+        setContact(contactId, { linkValues: processedLinks });
 
         // Log form submission
         gtag("event", "form_submit", {
@@ -66,25 +74,25 @@ export default function LinkForm() {
             "destination": "/links"
         });
 
-        router.push("/preview");
+        router.push(`/preview?id=${contactId}`);
     }
 
     const cancel = () => {
-        router.push("/preview");
+        router.push(`/preview?id=${contactId}`);
     }
 
+    // Load initial link values when provided (for editing existing contact)
     useEffect(() => {
-        if (linkValues) {
-            setFormfield(prevState => ({
-                ...prevState,
-                instagram: linkValues.instagram,
-                twitter: linkValues.twitter,
-                linkedin: linkValues.linkedin,
-                venmo: linkValues.venmo,
-                custom: linkValues.custom
-            }));
+        if (initialLinkValues) {
+            setFormfield({
+                instagram: initialLinkValues.instagram || "",
+                twitter: initialLinkValues.twitter || "",
+                linkedin: initialLinkValues.linkedin || "",
+                venmo: initialLinkValues.venmo || "",
+                custom: initialLinkValues.custom || ""
+            });
         }
-    }, [linkValues]);
+    }, [initialLinkValues]);
 
     return (
         <form id="linkForm" name="Link form" className="w-full max-w-md flex flex-col px-2"

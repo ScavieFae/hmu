@@ -1,7 +1,28 @@
+import { StorageContext } from "./_app.js";
 import Page from "../components/Page.js";
 import LinkForm from "../components/LinkForm.js";
 
+import { useRouter } from "next/router";
+import { useContext, useEffect, useState } from "react";
+
 export default function Links() {
+    const router = useRouter();
+    const { id: contactId } = router.query;
+
+    const { getContact } = useContext(StorageContext);
+
+    // Current contact's link values for editing
+    const [currentLinkValues, setCurrentLinkValues] = useState(null);
+
+    // Load contact's link data when contactId is available
+    useEffect(() => {
+        if (!contactId) return;
+
+        const contact = getContact(contactId);
+        if (contact && contact.linkValues) {
+            setCurrentLinkValues(contact.linkValues);
+        }
+    }, [contactId, getContact]);
 
     return (
         <Page className="justify-center bg-slate-100">
@@ -18,7 +39,10 @@ export default function Links() {
                     Edit your social&nbsp;links
                 </h1>
             </header>
-            <LinkForm />
+            <LinkForm 
+                contactId={contactId}
+                initialLinkValues={currentLinkValues}
+            />
         </Page>
     );
 };

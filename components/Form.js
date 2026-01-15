@@ -9,10 +9,11 @@ import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
 import { safeGetItem, safeSetItem, STORAGE_KEYS } from "../utils/storage.js";
 
-export default function Form(props) {
+export default function Form({ contactId, initialFormValues, handleChange: onVibeChange }) {
     const router = useRouter();
+    const { editing } = router.query;
 
-    const { formValues, setFormValues, linkValues, setLinkValues } = useContext(StorageContext);
+    const { setContact, getContact } = useContext(StorageContext);
 
     const [formfield, setFormfield] = useState({
         name: "",
@@ -30,8 +31,8 @@ export default function Form(props) {
             ...prevState,
             [name]: value,
         }));
-        if (event.target.name == "vibe") {
-            props.handleChange(event.target.value);
+        if (event.target.name == "vibe" && onVibeChange) {
+            onVibeChange(event.target.value);
         }
     }
 
@@ -59,11 +60,15 @@ export default function Form(props) {
         }
 
         // Anon vibe if not set
-        if (formfield.vibe == "") {
-            formfield.vibe = JSON.stringify(vibes.filter(vibe => vibe.label === "Anon")[0]);
+        let finalFormValues = { ...formfield };
+        if (finalFormValues.vibe == "") {
+            finalFormValues.vibe = JSON.stringify(vibes.filter(vibe => vibe.label === "Anon")[0]);
         }
         
-        setFormValues(formfield);
+        // Save contact using new API
+        // If contactId is 'new', this creates a new contact and returns the new ID
+        // Otherwise it updates the existing contact
+        const savedId = setContact(contactId, { formValues: finalFormValues });
 
         // Log first time code creation
         if (!safeGetItem(STORAGE_KEYS.CONVERTED)) {
@@ -78,7 +83,9 @@ export default function Form(props) {
             "destination": "/create"
         });
 
-        router.push("/preview");
+        // Navigate to preview for this contact
+        // Use savedId which will be the new ID if this was a new contact
+        router.push(`/preview?id=${savedId || contactId}`);
     }
 
     const dismiss = () => {
@@ -86,22 +93,25 @@ export default function Form(props) {
     }
 
     const cancel = () => {
-        router.query.editing ?
-            router.push("/preview") : router.push("/");
+        if (editing && contactId && contactId !== 'new') {
+            router.push(`/preview?id=${contactId}`);
+        } else {
+            router.push("/");
+        }
     }
 
+    // Load initial form values when provided (for editing existing contact)
     useEffect(() => {
-        if (formValues) {
-            setFormfield(prevState => ({
-                ...prevState,
-                name: formValues.name,
-                phone: formValues.phone,
-                email: formValues.email,
-                url: formValues.url,
-                vibe: formValues.vibe
-            }));
+        if (initialFormValues) {
+            setFormfield({
+                name: initialFormValues.name || "",
+                phone: initialFormValues.phone || "",
+                email: initialFormValues.email || "",
+                url: initialFormValues.url || "",
+                vibe: initialFormValues.vibe || ""
+            });
         }
-    }, [formValues]);
+    }, [initialFormValues]);
 
     return (
         <form id="contactForm" className="w-full max-w-md flex flex-col px-2"

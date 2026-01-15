@@ -2,133 +2,247 @@ import '../styles/reset.css';
 import '../dist/main.css';
 import Analytics from '../components/Analytics';
 
-import { createContext, useEffect, useState } from 'react';
-import { safeGetItem, safeSetItem, STORAGE_KEYS } from '../utils/storage.js';
+import { createContext, useEffect, useState, useCallback } from 'react';
+import { 
+  safeGetItem, 
+  safeSetItem, 
+  STORAGE_KEYS, 
+  generateContactId,
+  createEmptyContact,
+  MAX_CONTACTS,
+  EMPTY_FORM_VALUES,
+  EMPTY_LINK_VALUES
+} from '../utils/storage.js';
 import { migrateFromSecureStorage } from '../utils/migration.js';
-
-/**
- * Load data from plain localStorage.
- *
- * WHY: Replaced react-secure-storage with plain localStorage because encryption
- * using browser fingerprints caused data loss on Android when fingerprints changed.
- */
-const loadLocalStorageData = (item) => {
-    if (typeof window !== 'undefined') {
-        const data = safeGetItem(item);
-        console.log(`[App] Loaded ${item}:`, data);
-        return data || "";
-    }
-    return "";
-}
 
 export const StorageContext = createContext(null);
 
+/**
+ * Migrate from old single-contact structure to new multi-contact array.
+ * 
+ * WHY: Existing users have data in formValues/linkValues keys. We need to
+ * preserve their data while moving to the new contacts array structure.
+ * 
+ * Safe to run multiple times (idempotent) - checks migration flag first.
+ */
+function migrateToMultiContact() {
+  // Skip if already migrated
+  if (safeGetItem(STORAGE_KEYS.CONTACTS_MIGRATION_COMPLETE)) {
+    console.log('[Migration] Multi-contact migration already complete');
+    return;
+  }
+
+  // Skip if contacts array already exists (shouldn't happen, but be safe)
+  const existingContacts = safeGetItem(STORAGE_KEYS.CONTACTS);
+  if (existingContacts && Array.isArray(existingContacts) && existingContacts.length > 0) {
+    console.log('[Migration] Contacts array already exists, skipping migration');
+    safeSetItem(STORAGE_KEYS.CONTACTS_MIGRATION_COMPLETE, true);
+    return;
+  }
+
+  // Check for old single-contact data
+  const oldFormValues = safeGetItem(STORAGE_KEYS.FORM_VALUES);
+  const oldLinkValues = safeGetItem(STORAGE_KEYS.LINK_VALUES);
+
+  // If no old data, nothing to migrate - start fresh
+  if (!oldFormValues || oldFormValues === "") {
+    console.log('[Migration] No existing contact data to migrate');
+    safeSetItem(STORAGE_KEYS.CONTACTS, []);
+    safeSetItem(STORAGE_KEYS.CONTACTS_MIGRATION_COMPLETE, true);
+    return;
+  }
+
+  // Create new contacts array with migrated data
+  const migratedContact = {
+    id: generateContactId(),
+    formValues: oldFormValues,
+    linkValues: oldLinkValues || { ...EMPTY_LINK_VALUES }
+  };
+
+  const contacts = [migratedContact];
+  
+  const success = safeSetItem(STORAGE_KEYS.CONTACTS, contacts);
+  if (success) {
+    console.log('[Migration] Successfully migrated to multi-contact structure');
+    safeSetItem(STORAGE_KEYS.CONTACTS_MIGRATION_COMPLETE, true);
+    // Note: We keep old keys for now in case rollback is needed
+  } else {
+    console.error('[Migration] Failed to save migrated contacts');
+  }
+}
+
 function MyApp({ Component, pageProps }) {
+  const [loading, setLoading] = useState(true);
+  const [contacts, _setContacts] = useState([]);
+  const [storageError, setStorageError] = useState(false);
 
-    const [loading, setLoading] = useState(true);
-    const [formValues, _setFormValues] = useState(null);
-    const [linkValues, _setLinkValues] = useState(null);
-    const [storageError, setStorageError] = useState(false);
+  /**
+   * Save contacts to storage and update state.
+   * WHY: Centralized save ensures storage and state stay in sync.
+   */
+  const setContacts = useCallback((newContacts) => {
+    const success = safeSetItem(STORAGE_KEYS.CONTACTS, newContacts);
+    if (!success) {
+      setStorageError(true);
+      setTimeout(() => setStorageError(false), 10000);
+    }
+    _setContacts(newContacts);
+  }, []);
 
-    // Custom setter: storage and state with error handling
-    // WHY: Surface write failures to user so they know data isn't being saved
-    const setFormValues = (value) => {
-        const success = safeSetItem(STORAGE_KEYS.FORM_VALUES, value);
-        if (!success) {
-            setStorageError(true);
-            // Auto-dismiss after 10 seconds
-            setTimeout(() => setStorageError(false), 10000);
+  /**
+   * Get a specific contact by ID.
+   * Returns null if not found.
+   */
+  const getContact = useCallback((id) => {
+    return contacts.find(c => c.id === id) || null;
+  }, [contacts]);
+
+  /**
+   * Update a specific contact's data.
+   * Creates contact if ID is 'new'.
+   * 
+   * @param {string} id - Contact ID or 'new' for new contact
+   * @param {object} data - { formValues?, linkValues? } - partial update
+   * @returns {string} The contact ID (useful when creating new)
+   */
+  const setContact = useCallback((id, data) => {
+    let contactId = id;
+    let updatedContacts;
+
+    if (id === 'new') {
+      // Create new contact
+      if (contacts.length >= MAX_CONTACTS) {
+        console.warn('[Contacts] Max contacts reached, cannot add more');
+        return null;
+      }
+      const newContact = createEmptyContact();
+      if (data.formValues) newContact.formValues = data.formValues;
+      if (data.linkValues) newContact.linkValues = data.linkValues;
+      updatedContacts = [...contacts, newContact];
+      contactId = newContact.id;
+      console.log(`[Contacts] Created new contact: ${contactId}`);
+    } else {
+      // Update existing contact
+      updatedContacts = contacts.map(contact => {
+        if (contact.id === id) {
+          return {
+            ...contact,
+            formValues: data.formValues !== undefined ? data.formValues : contact.formValues,
+            linkValues: data.linkValues !== undefined ? data.linkValues : contact.linkValues
+          };
         }
-        _setFormValues(value);
+        return contact;
+      });
+      console.log(`[Contacts] Updated contact: ${id}`);
     }
 
-    // Custom setter: storage and state with error handling
-    const setLinkValues = (value) => {
-        const success = safeSetItem(STORAGE_KEYS.LINK_VALUES, value);
-        if (!success) {
-            setStorageError(true);
-            // Auto-dismiss after 10 seconds
-            setTimeout(() => setStorageError(false), 10000);
-        }
-        _setLinkValues(value);
+    setContacts(updatedContacts);
+    return contactId;
+  }, [contacts, setContacts]);
+
+  /**
+   * Delete a contact by ID.
+   * WHY: Allow users to remove contacts (future feature, wired up now).
+   */
+  const deleteContact = useCallback((id) => {
+    const updatedContacts = contacts.filter(c => c.id !== id);
+    setContacts(updatedContacts);
+    console.log(`[Contacts] Deleted contact: ${id}`);
+  }, [contacts, setContacts]);
+
+  /**
+   * Check if user can add more contacts.
+   */
+  const canAddContact = contacts.length < MAX_CONTACTS;
+
+  // Load storage and set state once on mount
+  useEffect(() => {
+    // Run legacy migration first (react-secure-storage → plain localStorage)
+    migrateFromSecureStorage();
+    
+    // Run multi-contact migration (single contact → array)
+    migrateToMultiContact();
+
+    // Load contacts from storage
+    const loadedContacts = safeGetItem(STORAGE_KEYS.CONTACTS);
+    _setContacts(loadedContacts || []);
+
+    // Request persistent storage to reduce eviction risk on Android
+    if (navigator.storage?.persist) {
+      navigator.storage.persist().then(granted => {
+        console.log(`[Storage] Persistence ${granted ? 'granted' : 'denied'}`);
+      });
     }
 
-    // Load storage and set state once on mount
-    useEffect(() => {
-        // Run migration first - attempts to move data from react-secure-storage
-        // to plain localStorage. Safe to run multiple times (idempotent).
-        migrateFromSecureStorage();
+    // Log storage quota and usage for diagnostics
+    if (navigator.storage?.estimate) {
+      navigator.storage.estimate().then(estimate => {
+        const usedMB = (estimate.usage / 1024 / 1024).toFixed(2);
+        const quotaMB = (estimate.quota / 1024 / 1024).toFixed(2);
+        const percentUsed = ((estimate.usage / estimate.quota) * 100).toFixed(1);
+        console.log(`[Storage] Quota: ${quotaMB}MB, Used: ${usedMB}MB (${percentUsed}%)`);
+      });
+    }
 
-        // Load data from plain localStorage
-        _setFormValues(loadLocalStorageData(STORAGE_KEYS.FORM_VALUES));
-        _setLinkValues(loadLocalStorageData(STORAGE_KEYS.LINK_VALUES));
+    setLoading(false);
+  }, []);
 
-        // Request persistent storage to reduce eviction risk on Android
-        if (navigator.storage?.persist) {
-            navigator.storage.persist().then(granted => {
-                console.log(`[Storage] Persistence ${granted ? 'granted' : 'denied'}`);
-            });
-        }
+  // Context value with all contact operations
+  const contextValue = {
+    // Data
+    contacts,
+    // Operations
+    getContact,
+    setContact,
+    deleteContact,
+    canAddContact,
+    // Error state
+    storageError,
+    setStorageError
+  };
 
-        // Log storage quota and usage for diagnostics (helps debug future issues)
-        if (navigator.storage?.estimate) {
-            navigator.storage.estimate().then(estimate => {
-                const usedMB = (estimate.usage / 1024 / 1024).toFixed(2);
-                const quotaMB = (estimate.quota / 1024 / 1024).toFixed(2);
-                const percentUsed = ((estimate.usage / estimate.quota) * 100).toFixed(1);
-                console.log(`[Storage] Quota: ${quotaMB}MB, Used: ${usedMB}MB (${percentUsed}%)`);
-            });
-        }
-    }, [])
-
-    useEffect(() => {
-        if (formValues !== null) {
-            setLoading(false);
-        }
-    }, [formValues]);
-
-    return (
-        loading ? null :
-            <StorageContext.Provider value={{ formValues, setFormValues, linkValues, setLinkValues, storageError, setStorageError }} >
-                <Analytics />
-                {storageError && (
-                    <div style={{
-                        position: 'fixed',
-                        top: '16px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        backgroundColor: '#EF4444',
-                        color: 'white',
-                        padding: '12px 20px',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                        zIndex: 9999,
-                        maxWidth: '90%',
-                        textAlign: 'center',
-                        fontSize: '14px',
-                        fontWeight: '500'
-                    }}>
-                        Unable to save your data. Check browser storage settings.
-                        <button
-                            onClick={() => setStorageError(false)}
-                            style={{
-                                marginLeft: '12px',
-                                background: 'rgba(255, 255, 255, 0.2)',
-                                border: 'none',
-                                color: 'white',
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '12px'
-                            }}
-                        >
-                            Dismiss
-                        </button>
-                    </div>
-                )}
-                <Component {...pageProps} />
-            </StorageContext.Provider>
-    )
+  return (
+    loading ? null :
+      <StorageContext.Provider value={contextValue}>
+        <Analytics />
+        {storageError && (
+          <div style={{
+            position: 'fixed',
+            top: '16px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#EF4444',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            zIndex: 9999,
+            maxWidth: '90%',
+            textAlign: 'center',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}>
+            Unable to save your data. Check browser storage settings.
+            <button
+              onClick={() => setStorageError(false)}
+              style={{
+                marginLeft: '12px',
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+        <Component {...pageProps} />
+      </StorageContext.Provider>
+  )
 }
 
 export default MyApp;

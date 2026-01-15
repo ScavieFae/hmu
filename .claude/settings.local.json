@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(ls:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(./loop.sh plan:*)",
+      "Bash(./loop.sh:*)"
     ]
   }
 }

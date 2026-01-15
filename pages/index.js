@@ -6,14 +6,14 @@ import InstallModal from "../components/InstallModal.js";
 import Modal from "../components/Modal.js";
 import TextButton from "../components/TextButton";
 import styles from "../styles/Home.module.css";
+import { safeParseVibe } from "../utils/storage.js";
 
 import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Typed from "typed.js";
-import { safeParseVibe } from "../utils/storage.js";
 
 export default function Home() {
-    const { formValues, setFormValues, linkValues, setLinkValues } = useContext(StorageContext);
+    const { contacts, canAddContact } = useContext(StorageContext);
 
     const [loading, setLoading] = useState(true);
 
@@ -29,10 +29,10 @@ export default function Home() {
     const el = useRef("#shuffle");
 
     useEffect(() => {
-        if (formValues !== null) {
+        if (contacts !== null) {
             setLoading(false);
         }
-    }, [formValues])
+    }, [contacts])
 
     useEffect(() => {
         // Initialize headline shuffle
@@ -99,9 +99,9 @@ export default function Home() {
     // Initialize router
     const router = useRouter();
 
-    // Navigate to contact form
+    // Navigate to contact form for new contact
     const create = () => {
-        router.push("/create");
+        router.push("/create?id=new");
     }
 
     const pressInstallButton = () => {
@@ -114,6 +114,9 @@ export default function Home() {
     const togglePrivacyModal = () => { setPrivacyModal(!privacyModal) }
     const toggleFeedbackModal = () => { setFeedbackModal(!feedbackModal) }
 
+    // Check if user has any contacts with data
+    const hasContacts = contacts && contacts.length > 0 && contacts.some(c => c.formValues?.name && c.formValues?.vibe);
+
     return (
         <Page className="justify-center bg-slate-100 opacity-0"
             style={loading ? null : { "opacity": 1 }}>
@@ -125,8 +128,25 @@ export default function Home() {
                 <p className="text-xl max-w-md leading-normal">Connect faster IRL with personal QR codes for what matters to you.</p>
             </header>
             {isStandalone ?
-                formValues.name && formValues.vibe ?
-                    <Contacts name={formValues.name} vibe={safeParseVibe(formValues.vibe)} />
+                hasContacts ?
+                    <div className="mt-16 flex flex-col items-center space-y-4">
+                        {/* Render all contacts that have data */}
+                        {contacts
+                            .filter(c => c.formValues?.name && c.formValues?.vibe)
+                            .map(contact => (
+                                <Contacts 
+                                    key={contact.id}
+                                    id={contact.id}
+                                    name={contact.formValues.name} 
+                                    vibe={safeParseVibe(contact.formValues.vibe)} 
+                                />
+                            ))
+                        }
+                        {/* Show add button if under max contacts */}
+                        {canAddContact && (
+                            <Button className="mt-4" onClick={create}>+ New contact</Button>
+                        )}
+                    </div>
                     : <Button className="mt-16" onClick={create}>+ New contact</Button>
                 : <div className="mt-16 flex flex-col items-center">
                     <Button className="mb-4" onClick={pressInstallButton}>Install app</Button>
@@ -158,9 +178,6 @@ export default function Home() {
                             <li>Email me: <a href="mailto:sup@hmu.world?subject=hmu.world%20Feedback" target="_blank" rel="noreferrer"
                                 className="text-purple-600 transition-all duration-150
                             hover:text-purple-400 focus:text-purple-400 active:text-purple-400">sup@hmu.world</a></li>
-                            <li>DM me on Twitter: <a href="https://x.com/stedmanhalliday" target="_blank" rel="noreferrer"
-                                className="text-purple-600 transition-all duration-150
-                            hover:text-purple-400 focus:text-purple-400 active:text-purple-400">@stedmanhalliday</a></li>
                         </ol>
                     </div>
                 </Modal>

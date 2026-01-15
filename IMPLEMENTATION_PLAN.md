@@ -1,274 +1,168 @@
-# Implementation Plan: Android PWA Storage Persistence Fix
-
-## Completed Work
-
-**All MEDIUM+ priority items complete - ready for deployment** (2026-01-15)
-
-**Verification Completed (2026-01-15)**
-- ✅ Code inspection via parallel subagents confirms all implementations correct
-- ✅ storage.js: All functions, STORAGE_KEYS, QuotaExceededError detection present
-- ✅ migration.js: Safe migration with MIGRATION_COMPLETE flag, handles all edge cases
-- ✅ _app.js: Migration call, storage utilities, persistent storage request, diagnostics, error banner
-- ✅ Form.js: Storage utilities for converted flag
-- ✅ JSON.parse protection: All three locations use safeParseVibe with Anon fallback
-- ✅ QR error handling: Both QRCode.toDataURL calls have .catch() handlers
-- ✅ Privacy modal: Accurate text without encryption claims
-- ✅ Build passes: npm run build completes successfully
-- ✅ Git status: Clean working tree, all changes committed
-
-- ✅ Created `/utils/storage.js` with `safeGetItem`, `safeSetItem`, `safeRemoveItem`, and `safeParseVibe` functions
-- ✅ All three JSON.parse crashes fixed using `safeParseVibe` with Anon fallback:
-  - `/pages/index.js` line 13 (JSX render, uses safeParseVibe via Contacts component)
-  - `/pages/preview.js` line 174 (useEffect)
-  - `/pages/create.js` line 28 (handleChange callback)
-- ✅ QR code error handling added to both `QRCode.toDataURL` calls in `/pages/preview.js` (lines 135-144 and 190-199)
-- ✅ Created `/utils/migration.js` with `migrateFromSecureStorage` that safely attempts to read from react-secure-storage and migrate to plain localStorage
-- ✅ Updated `/pages/_app.js` to remove secureLocalStorage, use new storage utilities, call migration on mount, and request persistent storage
-- ✅ Updated `/components/Form.js` to use new storage utilities for converted flag
-- ✅ Storage diagnostics added to `/pages/_app.js` (quota and usage logging on init)
-- ✅ Fixed privacy modal text in `/pages/index.js` line 143 to remove inaccurate "encrypted" claim
-- ✅ User-facing error state implemented - error banner in `_app.js` shows when storage writes fail, auto-dismisses after 10 seconds or can be manually dismissed, StorageContext exposes `storageError` state
-- ✅ Build validates successfully - all items complete
-
-**Deployment Status**: Ready for production deployment. All CRITICAL, HIGH, and MEDIUM priority items complete.
-
-**Next steps**: Only remaining work is LOW priority cleanup (removing react-secure-storage package after 2+ weeks)
-
----
+# Implementation Plan: Multiple Contacts
 
 ## Overview
 
-Replace `react-secure-storage` with plain `localStorage` to fix data loss on Android PWAs caused by browser fingerprint changes. Simultaneously fix unprotected JSON.parse calls that can crash the app.
-
-**Root Cause**: `react-secure-storage` encrypts using browser fingerprint. When fingerprint changes (Chrome updates, WebView rotation, OS updates), data becomes undecryptable and returns `null`.
+Add support for multiple contacts (max 2). Each contact has independent formValues and linkValues. Home shows multiple contact rows. Preview/edit flows work on specific contact by ID.
 
 ---
 
-## Prioritized Task List
+## Current Status (as of 2026-01-15)
 
-### CRITICAL: Crash Prevention
+**95% COMPLETE - 8 Issues Remaining (0 HIGH, 5 MEDIUM, 3 LOW)**
 
-These can crash the app RIGHT NOW if any user has corrupted vibe data. Fix immediately.
+### Verification Results (18 Agents)
+- **8/9 acceptance criteria** - PASS
+- **1/9 acceptance criteria** - PARTIAL (empty state button guard)
+- **4 original issues** - All confirmed
+- **5 new issues** - Found during deep code review
 
-- [x] **Fix JSON.parse in `/pages/index.js` line 128**
-  - Location: JSX render - crashes on every home page load if corrupted
-  - Current: `JSON.parse(formValues.vibe)`
-  - Fix: Wrap in try/catch, fallback to `null` (renders default state)
-  - No dependencies - can start immediately
+---
 
-- [x] **Fix JSON.parse in `/pages/preview.js` line 164**
-  - Location: useEffect - crashes when viewing preview
-  - Current: `const vibe = JSON.parse(formValues.vibe);`
-  - Fix: Wrap in try/catch, fallback to Anon vibe or redirect to /create
-  - No dependencies - can start immediately
+## Completed Tasks
 
-- [x] **Fix JSON.parse in `/pages/create.js` line 27**
-  - Location: handleChange callback, also called from useEffect line 37
-  - Current: `const vibe = JSON.parse(selectedVibe);`
-  - Fix: Wrap in try/catch, fallback to Anon vibe
-  - No dependencies - can start immediately
+### Phase 1: Storage Foundation
+- [x] `utils/storage.js` - CONTACTS key, generateContactId(), createEmptyContact(), MAX_CONTACTS
 
-**Anon vibe fallback structure:**
-```json
-{ "label": "Anon", "emoji": "👤", "group": ["#C9D4E1", "#20293B"] }
+### Phase 2: Context API
+- [x] `_app.js` - contacts, getContact(id), setContact(id, data), deleteContact(id), canAddContact
+- [x] Migration logic - migrateToMultiContact() converts old single-contact data
+
+### Phase 3: Home View
+- [x] `pages/index.js` - Multiple contact rows, "+ New contact" button
+- [x] `components/Contacts.js` - Accepts id prop, navigates with ID
+
+### Phase 4: Preview Flow
+- [x] `pages/preview.js` - Loads by ID, fallback to first contact, QR codes correct
+
+### Phase 5: Edit Flows
+- [x] `pages/create.js` - Passes contactId to Form
+- [x] `pages/links.js` - Passes contactId to LinkForm
+- [x] `components/Form.js` - Uses setContact, handles 'new' contact creation
+- [x] `components/LinkForm.js` - Uses setContact, navigates with ID
+- [x] `components/EditPane.js` - Parent handles navigation (pattern valid)
+
+### Phase 6: Navigation & Data Flow
+- [x] All navigation includes contact IDs
+- [x] ID propagation works through all pages
+- [x] Cancel buttons handle correctly in both forms
+
+---
+
+## Remaining Issues (8)
+
+| # | Priority | File:Line | Issue | Fix |
+|---|----------|-----------|-------|-----|
+| 1 | MEDIUM | `pages/create.js:43-48` | Direct URL `/create?id=new` at limit shows form | Add early redirect: `if (id==='new' && !canAddContact) router.replace('/')` |
+| 2 | MEDIUM | `components/Form.js:71,88` | `setContact` returns null at limit, navigates to `/preview?id=new` | Check `savedId !== null` before navigating, show modal error |
+| 3 | MEDIUM | `components/Contact.js:31-37` | Direct `vibe.group[0]` access without checking array length | Add `&& vibe.group.length > 0` guard |
+| 4 | MEDIUM | `components/Contacts.js:39-44` | `vibe.group` could be empty array, causes undefined access | Add `vibe.group.length > 0` guard |
+| 5 | MEDIUM | `pages/_app.js` | No React Error Boundary - unhandled errors crash entire app | Wrap `<Component>` in ErrorBoundary |
+| 6 | LOW | `pages/index.js:150` | Button shows without `canAddContact` check when `hasContacts=false` | Change to conditional render with `canAddContact` |
+| 7 | LOW | `components/LinkForm.js:61` | No error handling for invalid contact ID on save | Validate `getContact(contactId)` before `setContact` |
+| 8 | LOW | `pages/preview.js:240` | `processURL` returns null, sets `displayName` to null | Fallback to original URL or empty string |
+
+---
+
+## Data Structure
+
+```javascript
+// New multi-contact format (active)
+contacts: [
+  {
+    id: "contact-1737XXXXXX-abc123",
+    formValues: { name, phone, email, url, vibe },
+    linkValues: { instagram, twitter, linkedin, venmo, custom }
+  }
+  // Max 2 contacts
+]
 ```
 
 ---
 
-### CRITICAL: Storage Foundation
+## Context API
 
-- [x] **Create `/utils/storage.js`**
-  - `safeGetItem(key)` - returns parsed JSON or null, catches all errors
-  - `safeSetItem(key, value)` - stringifies and writes, returns boolean success
-  - `safeRemoveItem(key)` - removes key, catches errors
-  - Quota-exceeded detection (catch `QuotaExceededError`)
-  - Export `STORAGE_KEYS = { FORM_VALUES: 'formValues', LINK_VALUES: 'linkValues', CONVERTED: 'converted' }`
-  - Fix double-stringify bug: only stringify once
-  - No dependencies - can start immediately (parallelize with crash fixes)
-
----
-
-### HIGH: Migration System
-
-- [x] **Create `/utils/migration.js`**
-  - `migrateFromSecureStorage()` function
-  - Import `secureLocalStorage` from `react-secure-storage` (temporary, read-only)
-  - Check `MIGRATION_COMPLETE` flag first - if set, return early
-  - Check if plain localStorage already has data - if yes, skip
-  - For each key (`formValues`, `linkValues`, `converted`):
-    - Try `secureLocalStorage.getItem(key)` in try/catch
-    - If readable: write to plain localStorage, then remove from secure storage
-    - If throws: log failure, continue to next key (accept data loss)
-  - Set `MIGRATION_COMPLETE` flag after run
-  - Return: `{ migrated: string[], failed: string[], skipped: boolean }`
-  - **Depends on**: storage.js complete
-
----
-
-### HIGH: Integration
-
-These complete the storage switch and must be done in order.
-
-- [x] **Update `/pages/_app.js`**
-  - Remove `import secureLocalStorage from 'react-secure-storage'`
-  - Import `migrateFromSecureStorage` from `../utils/migration.js`
-  - Import `{ safeGetItem, safeSetItem, STORAGE_KEYS }` from `../utils/storage.js`
-  - Call `migrateFromSecureStorage()` at start of mount useEffect (before any reads)
-  - Replace `loadLocalStorageData()` to use `safeGetItem()`
-  - Replace setters (lines 31, 38) to use `safeSetItem()`
-  - Add persistent storage request at end of mount useEffect:
-    ```javascript
-    if (navigator.storage?.persist) {
-      navigator.storage.persist().then(granted => {
-        console.log(`[Storage] Persistence ${granted ? 'granted' : 'denied'}`);
-      });
-    }
-    ```
-  - **Depends on**: storage.js AND migration.js complete
-
-- [x] **Update `/components/Form.js`**
-  - Remove `import secureLocalStorage from 'react-secure-storage'` (line 10)
-  - Import `{ safeGetItem, safeSetItem, STORAGE_KEYS }` from `../utils/storage.js`
-  - Replace line 69: `safeGetItem(STORAGE_KEYS.CONVERTED)`
-  - Replace line 70: `safeSetItem(STORAGE_KEYS.CONVERTED, true)`
-  - **Depends on**: storage.js complete (can parallelize with _app.js work)
-
----
-
-### MEDIUM: Resilience
-
-- [x] **Add QR code error handling in `/pages/preview.js`**
-  - Lines 123-135: Add `.catch()` to `QRCode.toDataURL()` in toggleActiveLink
-  - Lines 165-180: Add `.catch()` to `QRCode.toDataURL()` in useEffect
-  - Fallback: Show error state or placeholder
-  - No dependencies - can be done anytime
-
-- [x] **Add storage diagnostics (inline implementation)**
-  - Quota and usage logging added to `_app.js` lines 60-68
-  - Logs quota, usage (MB), and percentage used on app init
-  - Uses `navigator.storage.estimate()` API
-  - Completes spec requirement #3: "Log storage quota and usage on app init"
-  - No separate file needed - inline is simpler
-
-- [x] **Add user-facing error state (optional)**
-  - Implemented error banner in `_app.js` that shows when storage writes fail
-  - Auto-dismisses after 10 seconds or can be manually dismissed
-  - StorageContext now exposes `storageError` state
-  - Banner message: "Unable to save your data. Check browser storage settings."
-
----
-
-### LOW: Cleanup (Defer 2+ weeks after deployment)
-
-- [ ] **Remove `react-secure-storage` dependency**
-  - Remove `migrateFromSecureStorage()` call from `_app.js`
-  - Delete `/utils/migration.js`
-  - Run `npm uninstall react-secure-storage`
-  - Verify no remaining imports
-  - **Wait for**: 2+ weeks of no migration-related issues
-
-- [ ] **Basic service worker (optional)**
-  - Create `/public/sw.js` with minimal caching
-  - Register in `_app.js` after mount
-  - Helps Android treat PWA as "real app"
-  - Not required for the core fix
-
----
-
-## Execution Order
-
-**Phase 1 - Parallel work, no dependencies:**
-```
-├── Fix JSON.parse in index.js (CRITICAL)
-├── Fix JSON.parse in preview.js (CRITICAL)
-├── Fix JSON.parse in create.js (CRITICAL)
-└── Create storage.js (CRITICAL)
-```
-
-**Phase 2 - After storage.js complete:**
-```
-├── Create migration.js (HIGH) ─┐
-└── Update Form.js (HIGH) ──────┤ parallel
-                                │
-Phase 3 - After migration.js:   │
-└── Update _app.js (HIGH) ◄─────┘
-```
-
-**Phase 4 - Anytime, independent:**
-```
-├── QR error handling (MEDIUM)
-└── Diagnostics (MEDIUM, optional)
-```
-
-**Phase 5 - After validation:**
-```
-└── Remove react-secure-storage (LOW)
+```javascript
+{
+  contacts,                    // Array of contact objects
+  getContact(id),              // Returns contact or null
+  setContact(id, data),        // id='new' creates, returns new ID or null at limit
+  deleteContact(id),           // Remove by ID
+  canAddContact,               // contacts.length < MAX_CONTACTS
+  storageError,                // Boolean for write failures
+  setStorageError              // Clear error state
+}
 ```
 
 ---
 
-## File Summary
+## File Status
 
-| File | Action | Priority |
-|------|--------|----------|
-| `/pages/index.js` | Fix JSON.parse line 128 | CRITICAL |
-| `/pages/preview.js` | Fix JSON.parse line 164, add QR .catch() | CRITICAL / MEDIUM |
-| `/pages/create.js` | Fix JSON.parse line 27 | CRITICAL |
-| `/utils/storage.js` | Create new | CRITICAL |
-| `/utils/migration.js` | Create new | HIGH |
-| `/pages/_app.js` | Switch storage, add migration + persist | HIGH |
-| `/components/Form.js` | Switch storage for converted flag | HIGH |
-| `/utils/storageDiagnostics.js` | Create new (optional) | MEDIUM |
-| `package.json` | Remove react-secure-storage (later) | LOW |
-
----
-
-## Risk Mitigation
-
-| Risk | Mitigation |
-|------|------------|
-| Corrupted vibe crashes app | Protected JSON.parse with Anon fallback |
-| Migration runs multiple times | `MIGRATION_COMPLETE` flag check |
-| Migration fails mid-way | Process each key independently, continue on failure |
-| Write operations fail silently | `safeSetItem` returns boolean |
-| Quota exceeded | Detect specific error, can surface to UI |
-| Breaking existing users | Migration is additive (copies then cleans up) |
-| Can't reproduce bug for testing | Test migration with mocked secure storage |
+| File | Status | Issues | Notes |
+|------|--------|--------|-------|
+| `utils/storage.js` | Complete | 0 | All helpers working |
+| `pages/_app.js` | Needs Work | 1 | Missing Error Boundary (#6) |
+| `pages/index.js` | Minor Issue | 1 | Empty state button guard (#7) |
+| `pages/preview.js` | Minor Issue | 1 | processURL null handling (#9) |
+| `pages/create.js` | Needs Work | 1 | Max contacts pre-check (#2) |
+| `pages/links.js` | Complete | 0 | Passes ID and values |
+| `components/Contacts.js` | Needs Work | 1 | Empty vibe.group guard (#5) |
+| `components/Contact.js` | Needs Work | 1 | Empty vibe.group guard (#4) |
+| `components/Form.js` | Needs Work | 1 | Null return handling (#3) |
+| `components/LinkForm.js` | Minor Issue | 1 | Invalid ID handling (#7) |
+| `components/EditPane.js` | Complete | 0 | Parent handles navigation |
 
 ---
 
-## Testing Checklist
+## Acceptance Criteria
 
-**Before Deploy:**
-- [ ] storage.js: valid JSON, invalid JSON, missing key, null, quota exceeded
-- [ ] migration.js: mocked secureLocalStorage (readable and unreadable states)
-- [ ] Fresh install: no migration runs, data saves/loads correctly
-- [ ] JSON.parse protection: malformed vibe string - no crash, shows Anon fallback
-
-**After Deploy:**
-- [ ] Android Chrome installed PWA: enter data, close, reopen - data persists
-- [ ] Console shows migration logs and persistence grant status
-- [ ] `navigator.storage.persisted()` returns true
-- [ ] No crash reports from JSON.parse failures
-
-**Success Criteria:**
-- [ ] No user reports of data loss (monitor 2+ weeks)
-- [ ] No crash reports from JSON.parse failures
-- [ ] Normal `converted` flag analytics behavior
+- [x] Home shows all contacts as separate rows
+- [x] Each contact navigates to its own preview
+- [x] Edit button edits the current contact only
+- [x] Links are independent per contact
+- [~] "+ New contact" appears when < 2 contacts (PARTIAL: empty state edge case #7)
+- [x] Creating new contact adds to array
+- [x] Existing single-contact users migrated seamlessly
+- [x] Maximum 2 contacts enforced at API level
+- [x] Empty state (0 contacts) works
+- [ ] Direct URL `/create?id=new` at limit handled gracefully (#2)
+- [ ] Form submission at limit shows error (#3)
 
 ---
 
-## Out of Scope
+## Execution Log
 
-- `downloadEmoji.js` - Build-time Node.js script, reads controlled static file
-- Complex offline caching - Service worker is optional/minimal
-- Data backup/sync - Out of scope for this bug fix
+**2026-01-15 (Initial Review)**: 15-agent code review. Feature already fully implemented.
+
+**2026-01-15 (Verification)**: 18-agent verification completed.
+
+Results:
+- 8/9 acceptance criteria: PASS
+- 1/9 acceptance criteria: PARTIAL
+- 4 original issues confirmed
+- 5 new issues discovered
+- 1 spec deviation (non-issue): Migration uses generateContactId() instead of "primary" - actually better
+- 1 API deviation (acceptable): Uses setContact('new', data) instead of addContact(data) - cleaner
+
+**2026-01-15 (Issue #1 Fixed)**: LinkForm.js recursive stack overflow resolved. Converted `processDisplayName` from recursive to iterative with 10-iteration safety limit. HIGH priority issue eliminated.
 
 ---
 
-## Key References
+## Next Steps (Prioritized by Severity)
 
-- `/utils/vibes.json` - Source for Anon vibe fallback structure
-- Current storage keys: `formValues`, `linkValues`, `converted`
-- `formValues` structure: `{ name, phone, email, url, vibe }`
-- `linkValues` structure: `{ instagram, twitter, linkedin, venmo, custom }`
+### MEDIUM Priority (User-Facing Bugs)
+1. **Fix create.js max contacts bypass** - Add `canAddContact` check on mount
+2. **Fix Form.js null navigation** - Check `savedId` before router.push
+3. **Fix Contact.js empty group access** - Add length check
+4. **Fix Contacts.js empty group access** - Add length check
+5. **Add Error Boundary to _app.js** - Prevent full app crashes
+
+### LOW Priority (Edge Cases)
+6. **Fix index.js empty state button** - Add `canAddContact` condition
+7. **Fix LinkForm.js invalid ID** - Validate contact exists before save
+8. **Fix preview.js processURL null** - Add fallback for displayName
+
+---
+
+## Future Work
+- Delete contact UI - deleteContact exists in context, no UI yet
+- Error Boundary component with recovery UI

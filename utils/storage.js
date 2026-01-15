@@ -12,11 +12,24 @@
 
 // Storage keys used throughout the app
 export const STORAGE_KEYS = {
+  // Legacy keys (single contact) - kept for migration
   FORM_VALUES: 'formValues',
   LINK_VALUES: 'linkValues',
+  // New key (multiple contacts)
+  CONTACTS: 'contacts',
+  // Other keys
   CONVERTED: 'converted',
-  MIGRATION_COMPLETE: 'MIGRATION_COMPLETE'
+  MIGRATION_COMPLETE: 'MIGRATION_COMPLETE',
+  CONTACTS_MIGRATION_COMPLETE: 'CONTACTS_MIGRATION_COMPLETE'
 };
+
+/**
+ * Generate a unique contact ID.
+ * Uses timestamp + random suffix for uniqueness without external dependencies.
+ */
+export function generateContactId() {
+  return `contact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
 
 /**
  * Safely retrieve and parse JSON from localStorage.
@@ -132,3 +145,40 @@ export function safeParseVibe(vibeString) {
     return ANON_VIBE;
   }
 }
+
+/**
+ * Empty contact template.
+ * WHY: Provides consistent structure for new contacts and null checks.
+ */
+export const EMPTY_FORM_VALUES = {
+  name: "",
+  phone: "",
+  email: "",
+  url: "",
+  vibe: ""
+};
+
+export const EMPTY_LINK_VALUES = {
+  instagram: "",
+  twitter: "",
+  linkedin: "",
+  venmo: "",
+  custom: ""
+};
+
+/**
+ * Create a new empty contact with a unique ID.
+ */
+export function createEmptyContact() {
+  return {
+    id: generateContactId(),
+    formValues: { ...EMPTY_FORM_VALUES },
+    linkValues: { ...EMPTY_LINK_VALUES }
+  };
+}
+
+/**
+ * Maximum number of contacts allowed.
+ * WHY: Keep initial implementation simple. Can increase later.
+ */
+export const MAX_CONTACTS = 2;
