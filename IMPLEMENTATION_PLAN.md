@@ -13,6 +13,7 @@
 - ✅ Created `/utils/migration.js` with `migrateFromSecureStorage` that safely attempts to read from react-secure-storage and migrate to plain localStorage
 - ✅ Updated `/pages/_app.js` to remove secureLocalStorage, use new storage utilities, call migration on mount, and request persistent storage
 - ✅ Updated `/components/Form.js` to use new storage utilities for converted flag
+- ✅ Storage diagnostics added to `/pages/_app.js` (quota and usage logging on init)
 - ✅ Build validates successfully - Phase 2 complete
 
 **Next steps**: Only remaining work is LOW priority cleanup (removing react-secure-storage package after 2+ weeks)
@@ -126,12 +127,12 @@ These complete the storage switch and must be done in order.
   - Fallback: Show error state or placeholder
   - No dependencies - can be done anytime
 
-- [ ] **Add storage diagnostics (optional)**
-  - Create `/utils/storageDiagnostics.js`
-  - `getStorageInfo()` - check quota, usage, persistence status
-  - Log on startup in dev mode
-  - Useful for debugging future issues
-  - **Depends on**: storage.js complete
+- [x] **Add storage diagnostics (inline implementation)**
+  - Quota and usage logging added to `_app.js` lines 60-68
+  - Logs quota, usage (MB), and percentage used on app init
+  - Uses `navigator.storage.estimate()` API
+  - Completes spec requirement #3: "Log storage quota and usage on app init"
+  - No separate file needed - inline is simpler
 
 - [ ] **Add user-facing error state (optional)**
   - Add `storageError` state to StorageContext

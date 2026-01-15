@@ -56,6 +56,16 @@ function MyApp({ Component, pageProps }) {
                 console.log(`[Storage] Persistence ${granted ? 'granted' : 'denied'}`);
             });
         }
+
+        // Log storage quota and usage for diagnostics (helps debug future issues)
+        if (navigator.storage?.estimate) {
+            navigator.storage.estimate().then(estimate => {
+                const usedMB = (estimate.usage / 1024 / 1024).toFixed(2);
+                const quotaMB = (estimate.quota / 1024 / 1024).toFixed(2);
+                const percentUsed = ((estimate.usage / estimate.quota) * 100).toFixed(1);
+                console.log(`[Storage] Quota: ${quotaMB}MB, Used: ${usedMB}MB (${percentUsed}%)`);
+            });
+        }
     }, [])
 
     useEffect(() => {
