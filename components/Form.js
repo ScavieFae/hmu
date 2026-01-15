@@ -7,7 +7,7 @@ import vibes from "../utils/vibes.json";
 
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
-import secureLocalStorage from "react-secure-storage";
+import { safeGetItem, safeSetItem, STORAGE_KEYS } from "../utils/storage.js";
 
 export default function Form(props) {
     const router = useRouter();
@@ -66,8 +66,8 @@ export default function Form(props) {
         setFormValues(formfield);
 
         // Log first time code creation
-        if (!secureLocalStorage.getItem("converted")) {
-            secureLocalStorage.setItem("converted", true);
+        if (!safeGetItem(STORAGE_KEYS.CONVERTED)) {
+            safeSetItem(STORAGE_KEYS.CONVERTED, true);
             gtag("event", "first_form_submit");
         }
 
