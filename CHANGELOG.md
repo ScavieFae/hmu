@@ -7,8 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Save multiple contacts
-- Delete contact
+- Delete contact UI
+
+## [0.1.5] - 2026-01-15
+
+### Added
+
+- Multiple contacts support (max 2 contacts per user)
+- Contact ID-based routing for preview, edit, and links pages
+- Migration from single-contact to multi-contact data format
+- Error Boundary to prevent full app crashes
+- "New contact" button on home screen
+
+### Fixed
+
+- Recursive stack overflow in URL display name processing
+- Direct URL bypass of max contacts limit
+- Null navigation after save at contact limit
+- Empty vibe group array access crashes
+- Invalid contact ID handling on link save
+- Null URL display name fallback
 
 ## [0.1.4] - 2025-01-15
 
