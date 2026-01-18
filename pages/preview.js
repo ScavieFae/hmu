@@ -11,11 +11,30 @@ import { useRouter } from 'next/router';
 import { useContext, useEffect, useState } from "react";
 import QRCode from "qrcode";
 
+const DEFAULT_LINK_ORDER = ['twitter', 'linkedin', 'github', 'telegram', 'instagram', 'venmo', 'custom'];
+const ORDER_STORAGE_KEY = 'linkOrder';
+
 export default function Preview() {
     const router = useRouter();
     const { id: contactId } = router.query;
 
     const { contacts, getContact } = useContext(StorageContext);
+
+    // Load link order from localStorage
+    const [linkOrder, setLinkOrder] = useState(DEFAULT_LINK_ORDER);
+
+    useEffect(() => {
+        const saved = localStorage.getItem(ORDER_STORAGE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                const allKeys = new Set([...parsed, ...DEFAULT_LINK_ORDER]);
+                setLinkOrder([...allKeys].filter(k => DEFAULT_LINK_ORDER.includes(k)));
+            } catch {
+                // Use default on parse error
+            }
+        }
+    }, []);
 
     const [data, setData] = useState({
         src: "",
@@ -282,17 +301,17 @@ export default function Preview() {
                     : "opacity-30 transition-opacity duration-100 socialLink contactLink"}
                 onClick={showContact}
             />
-            {Object.entries(links)
-                .filter(([key, value]) => value.url !== "")
-                .map(([key, value]) => (
+            {linkOrder
+                .filter(key => links[key] && links[key].url !== "")
+                .map(key => (
                     <SocialLink key={key}
                         className={activeLink == key ?
                             `transition-opacity duration-100 socialLink ${key}`
                             : `opacity-30 transition-opacity duration-100 socialLink ${key}`}
                         type={key}
-                        displayName={value.displayName}
-                        label={value.label}
-                        url={value.url}
+                        displayName={links[key].displayName}
+                        label={links[key].label}
+                        url={links[key].url}
                         onClick={toggleActiveLink} />
                 ))}
         </div>;
@@ -320,7 +339,6 @@ export default function Preview() {
                         onClick={editLinks}>Add links</TextButton> : filteredLinks}
             </div>
             {editing ? <EditPane contactId={contactId} editContact={editContact} editLinks={editLinks} /> : null}
-            <p className="absolute bottom-6 text-lg tracking-wide text-slate-600/50">hmu.world</p>
         </Page>
     );
 };
