@@ -42,6 +42,7 @@ export default function Preview() {
         label: "",
         vibe: "",
         url: "",
+        photo: "",
     });
 
     const [contact, setContact] = useState({
@@ -242,7 +243,8 @@ export default function Preview() {
 
         const name = formValues.name;
         const vibe = safeParseVibe(formValues.vibe);
-        
+        const photo = formValues.photo || "";
+
         QRCode.toDataURL(vCardValues(formValues),
             {
                 width: 168,
@@ -253,6 +255,7 @@ export default function Preview() {
                     displayName: name,
                     label: "Contact",
                     vibe: vibe,
+                    photo: photo,
                 });
                 setContact({
                     name: name,
@@ -265,6 +268,7 @@ export default function Preview() {
                     displayName: name,
                     label: "Contact",
                     vibe: vibe,
+                    photo: photo,
                 });
                 setContact({
                     name: name,
@@ -329,7 +333,8 @@ export default function Preview() {
             <Contact src={data.src || ""} displayName={data.displayName || ""} vibe={data.vibe || ""} label={data.label || ""}
                 style={editing ? { "opacity": 0 } : null}
                 activeLink={activeLink}
-                url={data.url || ""} />
+                url={data.url || ""}
+                photo={data.photo || ""} />
             <div className="z-10 mt-12 flex justify-center max-w-20
             opacity-75 transition-all duration-300"
                 style={editing ? { "opacity": 0 } : null}>

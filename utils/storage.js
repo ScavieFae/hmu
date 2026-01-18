@@ -155,7 +155,8 @@ export const EMPTY_FORM_VALUES = {
   phone: "",
   email: "",
   url: "",
-  vibe: ""
+  vibe: "",
+  photo: ""
 };
 
 export const EMPTY_LINK_VALUES = {
