@@ -161,6 +161,7 @@ export const EMPTY_FORM_VALUES = {
 export const EMPTY_LINK_VALUES = {
   twitter: "",
   linkedin: "",
+  github: "",
   telegram: "",
   instagram: "",
   venmo: "",

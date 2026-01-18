@@ -14,6 +14,7 @@ export default function LinkForm({ contactId, initialLinkValues }) {
     const [formfield, setFormfield] = useState({
         twitter: "",
         linkedin: "",
+        github: "",
         telegram: "",
         instagram: "",
         venmo: "",
@@ -95,6 +96,7 @@ export default function LinkForm({ contactId, initialLinkValues }) {
             setFormfield({
                 twitter: initialLinkValues.twitter || "",
                 linkedin: initialLinkValues.linkedin || "",
+                github: initialLinkValues.github || "",
                 telegram: initialLinkValues.telegram || "",
                 instagram: initialLinkValues.instagram || "",
                 venmo: initialLinkValues.venmo || "",
@@ -108,6 +110,7 @@ export default function LinkForm({ contactId, initialLinkValues }) {
             onSubmit={handleSubmit}>
             <Input name="twitter" label="X" type="text" value={formfield.twitter} placeholder="scav" onChange={handleChange} />
             <Input name="linkedin" label="LinkedIn" type="text" value={formfield.linkedin} placeholder="fairchildmattie" onChange={handleChange} />
+            <Input name="github" label="GitHub" type="text" value={formfield.github} placeholder="scaviefae" onChange={handleChange} />
             <Input name="telegram" label="Telegram" type="text" value={formfield.telegram} placeholder="scav" onChange={handleChange} />
             <Input name="instagram" label="Instagram" type="text" value={formfield.instagram} placeholder="scav" onChange={handleChange} />
             <Input name="venmo" label="Venmo" type="text" value={formfield.venmo} placeholder="scav" onChange={handleChange} />

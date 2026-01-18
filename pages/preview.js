@@ -45,6 +45,13 @@ export default function Preview() {
             url: "",
             urlPrepend: "https://linkedin.com/in/"
         },
+        github: {
+            label: "GitHub",
+            displayName: "",
+            displayNamePrepend: "@",
+            url: "",
+            urlPrepend: "https://github.com/"
+        },
         telegram: {
             label: "Telegram",
             displayName: "",
