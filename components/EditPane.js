@@ -18,7 +18,7 @@ export default function EditPane(props) {
     return (
         <div ref={pane} className="fixed z-10 top-16 right-8 bottom-16 left-8
         flex flex-col divide-y-2 divide-solid divide-white/75 opacity-0
-        transition-opacity duration-300 delay-300">
+        transition-opacity duration-150">
             <div className={`relative grow flex items-center justify-center animate-pulse editContact`}>
                 <TextButton className="px-8 py-5 rounded-full bg-black/10
                 active:bg-black/[.15] transition-all duration-100
