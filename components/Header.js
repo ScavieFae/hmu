@@ -23,8 +23,8 @@ export default function Header() {
             <meta property="og:image:type" content="image/png" />
 
             <meta name="twitter:card" content="summary_large_image" />
-            <meta name="twitter:site" content="@hmudotworld" />
-            <meta name="twitter:creator" content="@stedmanhalliday" />
+            <meta name="twitter:site" content="@scav" />
+            <meta name="twitter:creator" content="@scav" />
             <meta name="twitter:title" content="hmu.world | Personal QR codes for what matters to you" />
             <meta name="twitter:description" content="Connect faster IRL with personal QR codes for what matters to you." />
             <meta name="twitter:image" content="https://hmu.world/assets/og-image.png" />

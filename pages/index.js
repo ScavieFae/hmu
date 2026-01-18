@@ -175,9 +175,9 @@ export default function Home() {
                     <div className="text-base text-slate-600 space-y-3">
                         <p>Questions, comments, or bug reports?</p>
                         <ol>
-                            <li>Email me: <a href="mailto:sup@hmu.world?subject=hmu.world%20Feedback" target="_blank" rel="noreferrer"
+                            <li>Email me: <a href="mailto:fairchild.mattie@gmail.com?subject=hmu.world%20Feedback" target="_blank" rel="noreferrer"
                                 className="text-purple-600 transition-all duration-150
-                            hover:text-purple-400 focus:text-purple-400 active:text-purple-400">sup@hmu.world</a></li>
+                            hover:text-purple-400 focus:text-purple-400 active:text-purple-400">fairchild.mattie@gmail.com</a></li>
                         </ol>
                     </div>
                 </Modal>
