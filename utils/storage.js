@@ -159,9 +159,10 @@ export const EMPTY_FORM_VALUES = {
 };
 
 export const EMPTY_LINK_VALUES = {
-  instagram: "",
   twitter: "",
   linkedin: "",
+  telegram: "",
+  instagram: "",
   venmo: "",
   custom: ""
 };

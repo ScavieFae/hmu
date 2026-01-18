@@ -12,9 +12,10 @@ export default function LinkForm({ contactId, initialLinkValues }) {
     const { setContact, getContact } = useContext(StorageContext);
 
     const [formfield, setFormfield] = useState({
-        instagram: "",
         twitter: "",
         linkedin: "",
+        telegram: "",
+        instagram: "",
         venmo: "",
         custom: ""
     });
@@ -92,9 +93,10 @@ export default function LinkForm({ contactId, initialLinkValues }) {
     useEffect(() => {
         if (initialLinkValues) {
             setFormfield({
-                instagram: initialLinkValues.instagram || "",
                 twitter: initialLinkValues.twitter || "",
                 linkedin: initialLinkValues.linkedin || "",
+                telegram: initialLinkValues.telegram || "",
+                instagram: initialLinkValues.instagram || "",
                 venmo: initialLinkValues.venmo || "",
                 custom: initialLinkValues.custom || ""
             });
@@ -104,10 +106,11 @@ export default function LinkForm({ contactId, initialLinkValues }) {
     return (
         <form id="linkForm" name="Link form" className="w-full max-w-md flex flex-col px-2"
             onSubmit={handleSubmit}>
-            <Input name="instagram" label="Instagram" type="text" value={formfield.instagram} placeholder="snoopdogg" onChange={handleChange} />
-            <Input name="twitter" label="X (Twitter)" type="text" value={formfield.twitter} placeholder="snoopdogg" onChange={handleChange} />
-            <Input name="linkedin" label="LinkedIn" type="text" value={formfield.linkedin} placeholder="snoopdogg" onChange={handleChange} />
-            <Input name="venmo" label="Venmo" type="text" value={formfield.venmo} placeholder="snoopdogg" onChange={handleChange} />
+            <Input name="twitter" label="X" type="text" value={formfield.twitter} placeholder="scav" onChange={handleChange} />
+            <Input name="linkedin" label="LinkedIn" type="text" value={formfield.linkedin} placeholder="fairchildmattie" onChange={handleChange} />
+            <Input name="telegram" label="Telegram" type="text" value={formfield.telegram} placeholder="scav" onChange={handleChange} />
+            <Input name="instagram" label="Instagram" type="text" value={formfield.instagram} placeholder="scav" onChange={handleChange} />
+            <Input name="venmo" label="Venmo" type="text" value={formfield.venmo} placeholder="scav" onChange={handleChange} />
             <Input name="custom" label="Link" type="text" value={formfield.custom} placeholder="https://hmu.world" onChange={handleChange} />
             <Button type="submit" className="self-center my-4 shadow-none">Save links</Button>
             <TextButton onClick={cancel} className="self-center">Cancel</TextButton>

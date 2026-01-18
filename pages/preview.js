@@ -30,19 +30,12 @@ export default function Preview() {
     });
 
     const [links, setLinks] = useState({
-        instagram: {
-            label: "Instagram",
-            displayName: "",
-            displayNamePrepend: "@",
-            url: "",
-            urlPrepend: "https://instagram.com/"
-        },
         twitter: {
-            label: "X (Twitter)",
+            label: "X",
             displayName: "",
             displayNamePrepend: "@",
             url: "",
-            urlPrepend: "https://twitter.com/"
+            urlPrepend: "https://x.com/"
         },
         linkedin: {
             label: "LinkedIn",
@@ -50,6 +43,20 @@ export default function Preview() {
             displayNamePrepend: "@",
             url: "",
             urlPrepend: "https://linkedin.com/in/"
+        },
+        telegram: {
+            label: "Telegram",
+            displayName: "",
+            displayNamePrepend: "@",
+            url: "",
+            urlPrepend: "https://t.me/"
+        },
+        instagram: {
+            label: "Instagram",
+            displayName: "",
+            displayNamePrepend: "@",
+            url: "",
+            urlPrepend: "https://instagram.com/"
         },
         venmo: {
             label: "Venmo",
