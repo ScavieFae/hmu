@@ -23,7 +23,7 @@ export default function EditPane(props) {
                 <TextButton className="px-8 py-5 rounded-full bg-black/10
                 active:bg-black/[.15] transition-all duration-100
                 text-xl !border-none"
-                    onClick={props.editContact}>Edit contact</TextButton>
+                    onClick={props.editContact}>Edit card</TextButton>
             </div>
             <div className={`relative grow flex items-center justify-center animate-pulse editLinks`}>
                 <TextButton className="px-8 py-5 rounded-full bg-black/10
