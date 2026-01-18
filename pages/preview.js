@@ -22,6 +22,7 @@ export default function Preview() {
         displayName: "",
         label: "",
         vibe: "",
+        url: "",
     });
 
     const [contact, setContact] = useState({
@@ -105,7 +106,8 @@ export default function Preview() {
             ...prevData,
             displayName: contact.name,
             src: contact.src,
-            label: "Contact"
+            label: "Contact",
+            url: "",
         }));
     }
 
@@ -142,6 +144,7 @@ export default function Preview() {
                         src: dataUrl,
                         displayName: displayName,
                         label: label,
+                        url: url,
                     }));
                 }).catch((error) => {
                     console.error('[QR] Failed to generate QR code:', error);
@@ -150,6 +153,7 @@ export default function Preview() {
                         src: "",
                         displayName: displayName,
                         label: label,
+                        url: url,
                     }));
                 });
         }
@@ -298,7 +302,8 @@ export default function Preview() {
             </nav>
             <Contact src={data.src || ""} displayName={data.displayName || ""} vibe={data.vibe || ""} label={data.label || ""}
                 style={editing ? { "opacity": 0 } : null}
-                activeLink={activeLink} />
+                activeLink={activeLink}
+                url={data.url || ""} />
             <div className="z-10 mt-12 flex justify-center max-w-20
             opacity-75 transition-all duration-300"
                 style={editing ? { "opacity": 0 } : null}>

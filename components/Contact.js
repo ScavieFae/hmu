@@ -58,6 +58,11 @@ export default function Contact(props) {
                 src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512' fill='rgba(0, 0, 0)'%3E%3Cpath d='M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z'/%3E%3C/svg%3E",
                 alt: "linkedin"
             });
+        } else if (props.activeLink == "telegram") {
+            setImageAttributes({
+                src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512' fill='rgba(0, 0, 0)'%3E%3Cpath d='M446.7 98.6l-67.6 318.8c-5.1 22.5-18.4 28.1-37.3 17.5l-103-75.9-49.7 47.8c-5.5 5.5-10.1 10.1-20.7 10.1l7.4-104.9 190.9-172.5c8.3-7.4-1.8-11.5-12.9-4.1L117.8 284 16.2 252.2c-22.1-6.9-22.5-22.1 4.6-32.7L418.2 66.4c18.4-6.9 34.5 4.1 28.5 32.2z'/%3E%3C/svg%3E",
+                alt: "telegram"
+            });
         } else if (props.activeLink == "venmo") {
             setImageAttributes({
                 src: "data:image/svg+xml,%3Csvg viewBox='0 0 448 512' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M412.17 32H38.28C17.85 32 0 46.7 0 66.89V441.6C0 461.91 17.85 480 38.28 480H412.06C432.6 480 448 461.8 448 441.61V66.89C448.12 46.7 432.6 32 412.17 32ZM246 387H142.32L100.75 138.44L191.5 129.82L213.5 306.69C234.03 273.24 259.38 220.69 259.38 184.82C259.38 165.2 256.02 151.82 250.77 140.82L333.4 124.1C342.96 139.88 347.26 156.1 347.26 176.67C347.25 242.17 291.34 327.26 246 387Z' fill='black'/%3E%3C/svg%3E",
@@ -101,13 +106,23 @@ export default function Contact(props) {
                     "background": `linear-gradient(${angle}deg, ${stops.start}, ${stops.end})`,
                     "boxShadow": `0 -4px 16px 0 ${stops.startRGBA}, 0 4px 16px 0 ${stops.endRGBA}`
                 }}>
-                <div className="flex p-1.5 rounded-[16px]
-                bg-white">
-                    {props.src &&
-                        <img src={props.src} width={168} height={168}
-                            alt={`${props.label} QR code for ${props.displayName}`} />
-                    }
-                </div>
+                {props.url ? (
+                    <a href={props.url} target="_blank" rel="noopener noreferrer"
+                        className="flex p-1.5 rounded-[16px] bg-white cursor-pointer
+                        active:scale-[0.98] transition-transform">
+                        {props.src &&
+                            <img src={props.src} width={168} height={168}
+                                alt={`${props.label} QR code for ${props.displayName}`} />
+                        }
+                    </a>
+                ) : (
+                    <div className="flex p-1.5 rounded-[16px] bg-white">
+                        {props.src &&
+                            <img src={props.src} width={168} height={168}
+                                alt={`${props.label} QR code for ${props.displayName}`} />
+                        }
+                    </div>
+                )}
             </div>
         </div >
     )
