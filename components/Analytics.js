@@ -1,6 +1,11 @@
 // Analytics placeholder - add your own GA measurement ID here
 // import Script from "next/script";
 
+// No-op stub so gtag() calls elsewhere don't crash
+if (typeof window !== 'undefined' && !window.gtag) {
+    window.gtag = function() {};
+}
+
 export default function Analytics() {
     // To enable Google Analytics:
     // 1. Get a measurement ID from analytics.google.com (starts with G-)
