@@ -147,7 +147,7 @@ export default function Home() {
                             <Button className="mt-4" onClick={create}>+ New contact</Button>
                         )}
                     </div>
-                    : canAddContact ? <Button className="mt-16" onClick={create}>+ New contact</Button> : null
+                    : canAddContact ? <Button className="mt-16" onClick={create}>Create your card</Button> : null
                 : <div className="mt-16 flex flex-col items-center">
                     <Button className="mb-4" onClick={pressInstallButton}>Install app</Button>
                     <TextButton onClick={togglePrivacyModal}>Privacy</TextButton>
